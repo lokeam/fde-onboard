@@ -12,11 +12,7 @@ set -euo pipefail
 REPO="lokeam/fde-workstation"
 CLONE_DIR="${FDE_CLONE_DIR:-$HOME/fde-workstation}"
 MIN_MACOS_MAJOR=14
-# Accept --verbose as a flag (after the bash -c -- separator) OR as a
-# VERBOSE=1 env-var prefix. The env-var form is the natural one when
-# invoking via the curl one-liner; the flag form requires the awkward
-# `bash -c "..." -- --verbose` shape that hides --verbose from $@ unless
-# a -- placeholder occupies $0.
+# Accept either --verbose flag (needs `bash -c "..." -- --verbose`) or VERBOSE=1 env var.
 VERBOSE="${VERBOSE:-0}"
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -27,8 +23,7 @@ while [[ $# -gt 0 ]]; do
   shift
 done
 
-# Colour capability gate (TTY + TERM + NO_COLOR; FORCE_COLOR overrides).
-if { [[ -t 1 ]] && [[ "${TERM:-}" != "dumb" ]] && [[ -z "${NO_COLOR:-}" ]]; } || [[ -n "${FORCE_COLOR:-}" ]]; then
+if { [[ -t 1 ]] && [[ "${TERM:-}" != "dumb" ]] && [[ -z "${NO_COLOR:-}" ]]; } || [[ -n "${FORCE_COLOR:-}" ]]; then  # color: TTY + TERM + NO_COLOR; FORCE_COLOR overrides
   G=$'\033[1;32m'; R=$'\033[1;31m'; Y=$'\033[1;33m'; C=$'\033[1;36m'; BL=$'\033[1;34m'; BD=$'\033[1m'; D=$'\033[2m'; X=$'\033[0m'
 else
   G=""; R=""; Y=""; C=""; BL=""; BD=""; D=""; X=""
@@ -70,18 +65,11 @@ fi
 step "Installing Homebrew"
 if command -v brew >/dev/null 2>&1; then skip "already installed"
 else
-  # The Homebrew installer is interactive: it prompts for sudo password
-  # and gates on "Press RETURN/ENTER to continue". Inside run() those
-  # prompts would be hidden in the captured-output tempfile and the
-  # bootstrap would silently hang. Two fixes, both required:
-  #   1. Prime sudo's credential cache BEFORE run() hides its output.
-  #      The "Password:" prompt must be visible to the user.
-  #   2. Set NONINTERACTIVE=1 so the installer skips the RETURN gate.
-  # With both in place the installer runs cleanly inside run(), preserving
-  # the silent-default contract.
+  # Prime sudo cache OUTSIDE run() so the password prompt is visible; set
+  # NONINTERACTIVE=1 so the installer skips its "Press RETURN" gate. Both
+  # required, otherwise run()'s output capture hides interactive prompts.
   printf '\n  %s(brew install needs sudo; you may be prompted for your password)%s\n' "$D" "$X"
-  sudo -v || die "FDE-902" \
-    "Could not validate sudo access for the Homebrew installer." \
+  sudo -v || die "FDE-902" "Could not validate sudo access for the Homebrew installer." \
     "Run 'sudo -v' manually, enter your password, then re-run this bootstrap."
   NONINTERACTIVE=1 run /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)" \
     || die "FDE-902" "Homebrew installer exited non-zero." "Re-run with VERBOSE=1 to stream the installer output."
