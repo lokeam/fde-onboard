@@ -70,6 +70,22 @@ printf '%s' '
 '
 printf '%s\n' "$X"
 
+# Welcome text — plain (no color); the banner above is the visual accent.
+printf '%s\n' \
+'Welcome to the Tailor FDE workstation setup.' \
+'' \
+'This takes ~15-25 minutes to bring a fresh Mac to a working dev environment.' \
+'' \
+'What gets installed:' \
+'  • Homebrew + the GitHub CLI' \
+'  • Brewfile packages: bat, ripgrep, fzf, VS Code, Claude Code, Tailscale' \
+'  • Pinned versions of Oh My Zsh, powerlevel10k, and nvm' \
+'  • Symlinks for ~/.zshrc, ~/.zprofile, ~/.zsh_aliases' \
+'' \
+"You'll be prompted once for sudo and once for GitHub login." \
+'Recovery from any broken state: dotfix.' \
+''
+
 step "Verifying preflight (macOS 14+, arm64, zsh on PATH)"
 [[ "$(uname -s)" != "Darwin" ]] && die "FDE-002" "This bootstrap targets macOS; detected $(uname -s)." "Run on a macOS host."
 [[ "$(uname -m)" != "arm64" ]] && die "FDE-001" "This bootstrap targets Apple Silicon (arm64); detected $(uname -m)." "Run on an M-series Mac."
