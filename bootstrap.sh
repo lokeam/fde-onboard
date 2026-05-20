@@ -12,11 +12,16 @@ set -euo pipefail
 REPO="lokeam/fde-workstation"
 CLONE_DIR="${FDE_CLONE_DIR:-$HOME/fde-workstation}"
 MIN_MACOS_MAJOR=14
-VERBOSE=0
+# Accept --verbose as a flag (after the bash -c -- separator) OR as a
+# VERBOSE=1 env-var prefix. The env-var form is the natural one when
+# invoking via the curl one-liner; the flag form requires the awkward
+# `bash -c "..." -- --verbose` shape that hides --verbose from $@ unless
+# a -- placeholder occupies $0.
+VERBOSE="${VERBOSE:-0}"
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --verbose) VERBOSE=1 ;;
-    -h|--help) printf 'Usage: bootstrap.sh [--verbose]\n'; exit 0 ;;
+    -h|--help) printf 'Usage: VERBOSE=1 bootstrap.sh    OR    bootstrap.sh [-- --verbose]\n'; exit 0 ;;
     *) printf 'unknown flag: %s\n' "$1" >&2; exit 1 ;;
   esac
   shift
@@ -65,8 +70,21 @@ fi
 step "Installing Homebrew"
 if command -v brew >/dev/null 2>&1; then skip "already installed"
 else
-  run /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)" \
-    || die "FDE-902" "Homebrew installer exited non-zero." "Re-run with --verbose to stream the installer output."
+  # The Homebrew installer is interactive: it prompts for sudo password
+  # and gates on "Press RETURN/ENTER to continue". Inside run() those
+  # prompts would be hidden in the captured-output tempfile and the
+  # bootstrap would silently hang. Two fixes, both required:
+  #   1. Prime sudo's credential cache BEFORE run() hides its output.
+  #      The "Password:" prompt must be visible to the user.
+  #   2. Set NONINTERACTIVE=1 so the installer skips the RETURN gate.
+  # With both in place the installer runs cleanly inside run(), preserving
+  # the silent-default contract.
+  printf '\n  %s(brew install needs sudo; you may be prompted for your password)%s\n' "$D" "$X"
+  sudo -v || die "FDE-902" \
+    "Could not validate sudo access for the Homebrew installer." \
+    "Run 'sudo -v' manually, enter your password, then re-run this bootstrap."
+  NONINTERACTIVE=1 run /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)" \
+    || die "FDE-902" "Homebrew installer exited non-zero." "Re-run with VERBOSE=1 to stream the installer output."
   pass
 fi
 eval "$(/opt/homebrew/bin/brew shellenv)"
