@@ -10,7 +10,7 @@ status: draft
 Public companion to the Tailor FDE workstation setup. The only thing here is
 [`bootstrap.sh`](./bootstrap.sh) — a short, auditable shell script that takes
 a fresh Apple Silicon Mac from zero to the point where the private
-[workstation repo](https://github.com/lokeam/work-dot-files) can take over.
+[workstation repo](https://github.com/lokeam/fde-workstation) can take over.
 
 ## One-line install
 
@@ -27,7 +27,7 @@ The script does this in order:
 3. Installs Homebrew.
 4. Installs the GitHub CLI (`gh`).
 5. Runs `gh auth login` interactively.
-6. Clones `lokeam/work-dot-files` into `~/work-dot-files`.
+6. Clones `lokeam/fde-workstation` into `~/fde-workstation`.
 7. Hands off to that repo's `./install.sh`.
 
 Re-running is safe: every step short-circuits when its work is already done.
