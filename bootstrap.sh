@@ -24,12 +24,14 @@ while [[ $# -gt 0 ]]; do
 done
 
 if { [[ -t 1 ]] && [[ "${TERM:-}" != "dumb" ]] && [[ -z "${NO_COLOR:-}" ]]; } || [[ -n "${FORCE_COLOR:-}" ]]; then  # color: TTY + TERM + NO_COLOR; FORCE_COLOR overrides
-  G=$'\033[1;32m'; R=$'\033[1;31m'; Y=$'\033[1;33m'; C=$'\033[1;36m'; BL=$'\033[1;34m'; BD=$'\033[1m'; D=$'\033[2m'; X=$'\033[0m'
+  G=$'\033[1;32m'; R=$'\033[1;31m'; Y=$'\033[1;33m'; C=$'\033[1;36m'; BL=$'\033[1;34m'; BD=$'\033[1m'; D=$'\033[2m'; GR=$'\033[90m'; X=$'\033[0m'
 else
-  G=""; R=""; Y=""; C=""; BL=""; BD=""; D=""; X=""
+  G=""; R=""; Y=""; C=""; BL=""; BD=""; D=""; GR=""; X=""
 fi
 N=0; T=5
-step() { N=$((N+1)); printf '[%d/%d] %s... ' "$N" "$T" "$1"; }
+# step "<label>" ["<emoji>"]  — bracketed counter in gray; optional emoji
+# between the prefix and the label. Keeps the visual anchor on the label.
+step() { N=$((N+1)); printf '%s[%d/%d]%s %s%s... ' "$GR" "$N" "$T" "$X" "${2:+$2 }" "$1"; }
 pass() { printf '%s\xe2\x9c\x93 done%s\n' "$G" "$X"; }
 skip() { printf '%s\xe2\x9a\xa0 skipped%s (%s)\n' "$Y" "$X" "$1"; }
 die() {
@@ -86,7 +88,7 @@ printf '%s\n' \
 'Recovery from any broken state: dotfix.' \
 ''
 
-step "Verifying preflight (macOS 14+, arm64, zsh on PATH)"
+step "Verifying preflight (macOS 14+, arm64, zsh on PATH)" "🔍"
 [[ "$(uname -s)" != "Darwin" ]] && die "FDE-002" "This bootstrap targets macOS; detected $(uname -s)." "Run on a macOS host."
 [[ "$(uname -m)" != "arm64" ]] && die "FDE-001" "This bootstrap targets Apple Silicon (arm64); detected $(uname -m)." "Run on an M-series Mac."
 mv="$(sw_vers -productVersion)"
@@ -94,14 +96,14 @@ mv="$(sw_vers -productVersion)"
 command -v zsh >/dev/null 2>&1 || die "FDE-018" "zsh not found on PATH; macOS ${MIN_MACOS_MAJOR}+ ships /bin/zsh." "Verify /bin is on \$PATH (echo \"\$PATH\") or run from a regular Terminal."
 pass
 
-step "Triggering Xcode Command Line Tools install"
+step "Triggering Xcode Command Line Tools install" "🔨"
 if xcode-select -p >/dev/null 2>&1; then skip "already installed"
 else
   skip "GUI dialog will appear — re-run this bootstrap once the install completes"
   xcode-select --install || true; exit 0
 fi
 
-step "Installing Homebrew"
+step "Installing Homebrew" "☕"
 if command -v brew >/dev/null 2>&1; then skip "already installed"
 else
   # Prime sudo cache OUTSIDE run() so the password prompt is visible; set
@@ -116,7 +118,7 @@ else
 fi
 eval "$(/opt/homebrew/bin/brew shellenv)"
 
-step "Installing gh (GitHub CLI)"
+step "Installing gh (GitHub CLI)" "🐙"
 if command -v gh >/dev/null 2>&1; then skip "already installed"
 else
   run brew install gh || die "FDE-902" "brew install gh exited non-zero." "Re-run with --verbose to stream brew's output."
@@ -124,7 +126,7 @@ else
 fi
 
 # gh auth login is interactive (device flow + 2FA); do NOT wrap in run().
-step "Authenticating with GitHub + cloning private workstation repo"
+step "Authenticating with GitHub + cloning private workstation repo" "🔐"
 gh auth status >/dev/null 2>&1 || gh auth login
 if [[ ! -d "$CLONE_DIR/.git" ]]; then
   run gh repo clone "$REPO" "$CLONE_DIR" || die "FDE-902" \
