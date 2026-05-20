@@ -47,6 +47,29 @@ run() {
   rm -f "$tmp"; return "$rc"
 }
 
+# Brand banner — single-quoted printf preserves the art verbatim. Uses printf
+# (bash builtin) instead of `cat <<EOF` so the bootstrap doesn't depend on
+# /bin/cat being on PATH. Bold cyan on TTY, plain otherwise (color helpers
+# handle that already).
+printf '%s' "$BD$C"
+printf '%s' '
+
+            .##
+         #####                                    #   #.+
+      #####   -###-                              #### ###
+     ###   #####    ##       .##                      ###
+     ##  ####    #####     #########  #######    ###  ###    ######     ######
+     ##  ##  #####++##       -##  .  ###   ####  ###  ###  ###.  +###  ###  #
+     ##  ## ##++++++##        ##    ##+      ### ###  ### ###      ### ###
+     ##  ## ##++++++##       -##    ##       ### ###  ### ###      ### ###
+      .  ## ##+++++###       ###    ###.    #### ###  ### ####    ###  ###
+        .## ##++####          ###### ####### ### ###  ###   ########   ###
+            #####
+             +
+
+'
+printf '%s\n' "$X"
+
 step "Verifying preflight (macOS 14+, arm64, zsh on PATH)"
 [[ "$(uname -s)" != "Darwin" ]] && die "FDE-002" "This bootstrap targets macOS; detected $(uname -s)." "Run on a macOS host."
 [[ "$(uname -m)" != "arm64" ]] && die "FDE-001" "This bootstrap targets Apple Silicon (arm64); detected $(uname -m)." "Run on an M-series Mac."
